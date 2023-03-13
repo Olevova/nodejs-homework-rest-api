@@ -12,7 +12,13 @@ const userUpdateSchema = Joi.object({
     phone: Joi.string().pattern(phoneRegexp)
 });
 
+const userUpdateStatusSchema = Joi.object({
+    favorite: Joi.bool().required()
+});
+
+
 module.exports = {
     userSchema,
-    userUpdateSchema
+    userUpdateSchema,
+    userUpdateStatusSchema
 }
