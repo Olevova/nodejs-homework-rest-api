@@ -43,8 +43,14 @@ const getContactById = async (req, res, next) => {
 
 const removeContact = async (req, res, next) => {
   const { contactId } = req.params;
-   Contact.findByIdAndRemove({ _id: contactId });
-    return res.status(200).json(
+   const contact = await Contact.findByIdAndRemove({ _id: contactId });
+  if (!contact) {
+    return res.status(404).json({
+      "message": "contact not found"
+    })
+  }  
+  
+  return res.status(200).json(
     {
       "message": "contact deleted"
     }
@@ -59,7 +65,13 @@ const updateContact = async (req, res, next) => {
         message: "missing fields"
       })
     }
-  await Contact.findByIdAndUpdate({ _id: contactId }, req.body, { new: true });
+  const contact = await Contact.findByIdAndUpdate({ _id: contactId }, req.body, { new: true });
+  if (!contact) {
+    return res.status(404).json({
+      "message": "contact not found"
+    })
+  };
+
   return res.status(200).json(
    await Contact.findOne({ _id: contactId})
     )
@@ -69,18 +81,14 @@ const updateContact = async (req, res, next) => {
 const updateStatus = async (req, res, next) => {
   const { contactId } = req.params;
   const { favorite } = req.body;
-
   const updateFavorite = await Contact.findByIdAndUpdate(contactId, { favorite }, { new: true });
   if (!updateFavorite) {
-    res.status(404).json(
-      { message: " Not found " }
-    )
-  }
-  return res.status(200).json(
-    {
-      updateFavorite,
-    }
-  );
+      return res.status(404).json(
+        { "message": " Not found " }
+      )
+    };
+  
+    return res.status(200).json(updateFavorite);
 }
 
 

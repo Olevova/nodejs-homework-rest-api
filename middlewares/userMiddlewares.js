@@ -17,10 +17,10 @@ const checkStatusContact = (schema) => {
   return (req, res, next) => {
     const { error } = schema.validate(req.body);
     if (error) {
-      error.status = 400;
-      error.message = "missing field favorite";
-      next(error);
-      return;
+      res.status(400).json({
+        "message":"missing field favorite"
+      })
+      next(error);  
     }
     next();
   };
