@@ -13,6 +13,20 @@ const checkUserDate = (schema) => {
     }
 }
 
+const checkStatusContact = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body);
+    if (error) {
+      res.status(400).json({
+        "message":"missing field favorite"
+      })
+      next(error);  
+    }
+    next();
+  };
+};
+
 module.exports = {
-    checkUserDate
+    checkUserDate,
+    checkStatusContact
 }
