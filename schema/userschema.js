@@ -16,9 +16,16 @@ const userUpdateStatusSchema = Joi.object({
     favorite: Joi.bool().required()
 });
 
+const authSchema = Joi.object({
+    password: Joi.string().required(),
+    email: Joi.string().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required(),
+    subscription: Joi.string(),
+})
+
 
 module.exports = {
     userSchema,
     userUpdateSchema,
-    userUpdateStatusSchema
+    userUpdateStatusSchema,
+    authSchema
 }

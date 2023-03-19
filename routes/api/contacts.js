@@ -1,5 +1,7 @@
 const express = require('express');
-const {checkUserDate, checkStatusContact} = require('../../middlewares/userMiddlewares')
+
+const { checkUserDate, checkStatusContact } = require('../../middlewares/userMiddlewares');
+const {userAuth} = require("../../middlewares/loginMiddleware")
 const {userSchema,userUpdateSchema, userUpdateStatusSchema} = require('../../schema/userschema')
 const { listContacts, getContactById, addContact, updateContact, removeContact, updateStatus } = require('../../models/contacts');
 
@@ -8,8 +10,8 @@ const router = express.Router();
 
 router
     .route('/')
-    .get(listContacts)
-    .post(checkUserDate(userSchema), addContact);
+    .get(userAuth, listContacts)
+    .post(userAuth,checkUserDate(userSchema), addContact);
 
 router 
     .route('/:contactId')

@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 // const DB_HOST = "mongodb+srv://olevova1983:olevova1983@cluster0.qu7icj6.mongodb.net/db-contacts?retryWrites=true&w=majority"
 require('dotenv').config();
 console.log(process.env.DB_HOST);
+const authRouter = require('./routes/api/auth')
 const contactsRouter = require('./routes/api/contacts')
 
 const startConnection = () => {
@@ -15,6 +16,7 @@ const startConnection = () => {
   app.use(cors());
   app.use(express.json());
 
+  app.use('/api/users', authRouter)
   app.use('/api/contacts', contactsRouter);
   console.log("ok");
   try {
@@ -26,7 +28,14 @@ const startConnection = () => {
   } catch (error) {
     console.log(error.message);
   }
-  
+  app.use((req, res) => {
+  res.status(404).json({ message: 'Not found' })
+})
+
+  app.use((err, req, res, next) => {
+  const{message, statusCode = 500} = err
+  res.status(statusCode).json({ message: message})
+})
 }
 
 startConnection();
