@@ -25,12 +25,14 @@ const userRegistretion = async (req, res, next) => {
 
 const userLogin = async (req, res, next) => {
     const { password, email, subscription } = req.body;
+    if (!password || !email) {
+        return next(Unauthorized("message : Email or password is wrong"));
+    };
     const user = await User.findOne({ email });
-    console.log(user);
-    const userPassword = bcrypt.compareSync(password, user.password);
+    const userPassword = bcrypt.compareSync(password.toString(), user.password);
     console.log(userPassword);
     if (!user || !userPassword) {
-        throw new ("Email or password is wrong")
+        return next(Unauthorized("message : Email or password is wrong"));
     };
     const payload = {
         id: user._id
@@ -41,7 +43,7 @@ const userLogin = async (req, res, next) => {
         token,
         user: {
             email,
-            subscription
+            "subscription": user.subscription
         }
     })
 };

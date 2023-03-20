@@ -8,7 +8,10 @@ const registerUser = (schema) => {
         if (error) {
             res.status(400).json({
                 message: error.message
+                
             })
+           next(error);
+            return
         }
         next();
     }
