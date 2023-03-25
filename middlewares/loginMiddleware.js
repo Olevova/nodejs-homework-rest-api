@@ -1,6 +1,12 @@
 const  User  = require('../models/usersModels');
 const { Unauthorized } = require('http-errors');
 const jwt = require("jsonwebtoken");
+const multer = require('multer');
+const path = require('path');
+// const fs = require('fs').promises;
+
+const tmpDir = path.join(__dirname, '../', "tmp");
+
 
 const registerUser = (schema) => {
     return (req, res, next) => {
@@ -18,7 +24,7 @@ const registerUser = (schema) => {
 }
 
 
-const userAuth = async(req, res, next) => {
+const userAuth = async (req, res, next) => {
     const { authorization = '' } = req.headers;
     const [bearer, token] = authorization.split(" ");
     const { SECRET_KEY } = process.env;
@@ -30,8 +36,8 @@ const userAuth = async(req, res, next) => {
         const { id } = jwt.verify(token, SECRET_KEY);
         const user = await User.findById(id)
         if (!user) {
-         return next(Unauthorized("Not authorized"));
-    }
+            return next(Unauthorized("Not authorized"));
+        }
         req.user = user;
         next()
        
@@ -44,9 +50,30 @@ const userAuth = async(req, res, next) => {
         }
         next(error)
     }
-}
+};
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        
+        cb(null, tmpDir);
+    },
+    filename: (req, file, cb) => {
+        console.log(file.originalname);
+        cb(null, file.originalname);
+    },
+    limits: {
+        fileSize: 2048,
+    }
+});
+
+const upload = multer(
+    {
+        storage: storage,
+    }
+)
 
 module.exports = {
     userAuth,
-    registerUser
+    registerUser,
+    upload
 }

@@ -1,9 +1,24 @@
 const User = require('./usersModels');
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
-const { Conflict, Unauthorized } =  require('http-errors');
+const { Conflict, Unauthorized } = require('http-errors');
+const gravatar = require('gravatar');
+// const {v4: uuidv4} = require('uuid');
+const path = require('path');
+const fs = require('fs').promises;
+const Jimp = require('jimp')
 
 const{SECRET_KEY} = process.env
+const resizeImg = async (pathfile) => {
+    await Jimp.read(pathfile).then((image) => {
+        return image
+            .resize(256, 256) // resize
+            .write(pathfile); // save
+    })
+        .catch((err) => {
+            console.error(err, 123333);
+        });
+}
 
 const userRegistretion = async (req, res, next) => {
     const { password, email, subscription } = req.body;
@@ -13,12 +28,17 @@ const userRegistretion = async (req, res, next) => {
         return next(Conflict(`"message": "${email} in use"`))
     }
     const hashPassword = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
-    const newUser = await User.create({ password: hashPassword, email, subscription })
+    const avatar = gravatar.url(email, {
+        s: 250,
+        r: 'pg'
+    })
+    const newUser = await User.create({ password: hashPassword, email, subscription, avatarURL: avatar})
     return res.status(201).json(
         {
             "user": {
                 "email": newUser.email,
-                "subscription": newUser.subscription
+                "subscription": newUser.subscription,
+                "avatarURL": newUser.avatarURL
             }
         })
 };
@@ -69,9 +89,32 @@ const userLogout = async (req, res, next) => {
     }
 }
 
+const renewalAvatar = async (req, res, next) => {
+    const { path: filePath, originalname } = req.file;
+    console.log(req.file);
+    await resizeImg(filePath);
+    try {
+        const publicDir = path.join(__dirname, '../', 'public', 'avatars', originalname);
+        console.log(publicDir);
+        await fs.rename(filePath, publicDir);
+        
+        const avatarURL = path.join('public', 'avatars', originalname);
+        await User.findByIdAndUpdate(req.user._id, { avatarURL });
+
+        res.status(200).json({
+            avatarURL 
+        })
+    } catch (error) {
+        await fs.unlink(filePath);
+        res.status(401).json({"message": "Not authorized"})
+        
+    }
+}
+
 module.exports = {
     userRegistretion,
     userLogin,
     getCurrent,
-    userLogout
+    userLogout,
+    renewalAvatar
 }
