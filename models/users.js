@@ -3,10 +3,13 @@ const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const { Conflict, Unauthorized } = require('http-errors');
 const gravatar = require('gravatar');
-// const {v4: uuidv4} = require('uuid');
+const {v4: uuidv4} = require('uuid');
 const path = require('path');
 const fs = require('fs').promises;
-const Jimp = require('jimp')
+const Jimp = require('jimp');
+const sendMail = require('../helper/sendMail');
+const { log } = require('console');
+
 
 const{SECRET_KEY} = process.env
 const resizeImg = async (pathfile) => {
@@ -23,6 +26,7 @@ const resizeImg = async (pathfile) => {
 const userRegistretion = async (req, res, next) => {
     const { password, email, subscription } = req.body;
     const user = await User.findOne({ email });
+    const verificationToken = uuidv4();
     console.log(user);
     if (user) {
         return next(Conflict(`"message": "${email} in use"`))
@@ -31,8 +35,15 @@ const userRegistretion = async (req, res, next) => {
     const avatar = gravatar.url(email, {
         s: 250,
         r: 'pg'
-    })
-    const newUser = await User.create({ password: hashPassword, email, subscription, avatarURL: avatar})
+    });
+    const newUser = await User.create({ password: hashPassword, email, subscription, avatarURL: avatar, verificationToken})
+    const mail = {
+        to: email,
+        subject: "confir you email",
+        html: `<a href='http://localhost:3030/api/users/verify/${verificationToken}'> confirm your mail</a>`
+    };
+    await sendMail(mail)
+    
     return res.status(201).json(
         {
             "user": {
@@ -44,15 +55,17 @@ const userRegistretion = async (req, res, next) => {
 };
 
 const userLogin = async (req, res, next) => {
-    const { password, email, subscription } = req.body;
+    const { password, email, subscription, verificationToken } = req.body;
+    console.log(verificationToken);
     if (!password || !email) {
-        return next(Unauthorized("message : Email or password is wrong"));
+        return next(Unauthorized("message : Email or password is wrong or you not verify"));
     };
     const user = await User.findOne({ email });
     const userPassword = bcrypt.compareSync(password.toString(), user.password);
-    console.log(userPassword);
-    if (!user || !userPassword) {
-        return next(Unauthorized("message : Email or password is wrong"));
+    console.log(verificationToken);
+
+    if (!user || user.verificationToken || !userPassword) {
+        return next(Unauthorized("message : Email or password is wrong or you not verify"));
     };
     const payload = {
         id: user._id
@@ -102,19 +115,46 @@ const renewalAvatar = async (req, res, next) => {
         await User.findByIdAndUpdate(req.user._id, { avatarURL });
 
         res.status(200).json({
-            avatarURL 
+            avatarURL
         })
     } catch (error) {
         await fs.unlink(filePath);
-        res.status(401).json({"message": "Not authorized"})
+        res.status(401).json({ "message": "Not authorized" })
         
     }
-}
+};
+
+const newVerify = async (req, res, next) => {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+        res.status(400).json({
+            "message": "missing required field email"
+        })
+    }
+    if (!user.verify) {
+        const mail = {
+            to: email,
+            subject: "retry confir you email",
+            html: `<a href='http://localhost:3030/api/users/verify/${user.verificationToken}'> confirm your mail</a>`
+        };
+        await sendMail(mail);
+        return res.status(201).json(
+        {
+  "message": "Verification email sent"
+})
+    }
+    res.status(400).json({
+    message: "Verification has already been passed"
+})
+
+};
 
 module.exports = {
     userRegistretion,
     userLogin,
     getCurrent,
     userLogout,
-    renewalAvatar
+    renewalAvatar,
+    newVerify,
 }
