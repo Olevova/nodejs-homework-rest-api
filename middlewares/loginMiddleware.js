@@ -3,6 +3,7 @@ const { Unauthorized } = require('http-errors');
 const jwt = require("jsonwebtoken");
 const multer = require('multer');
 const path = require('path');
+const {v4: uuidv4} = require('uuid');
 // const fs = require('fs').promises;
 
 const tmpDir = path.join(__dirname, '../', "tmp");
@@ -66,6 +67,23 @@ const storage = multer.diskStorage({
     }
 });
 
+const veryfyEmail = async (req, res, next) => {
+    const { verificationToken } = req.params;
+    const user = await User.findOne({ verificationToken });
+    if (!user) {
+        res.status(404).json(
+            {
+                message: 'User not found'
+            }
+        )
+    };
+    await User.findByIdAndUpdate(user._id, { verify: true, verificationToken: null });
+    res.status(200).json({
+        message: 'Verification successful',
+    })
+};
+
+
 const upload = multer(
     {
         storage: storage,
@@ -75,5 +93,7 @@ const upload = multer(
 module.exports = {
     userAuth,
     registerUser,
+    veryfyEmail,
     upload
 }
+
